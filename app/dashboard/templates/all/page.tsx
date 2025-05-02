@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Eye, Edit, Search, Filter, Grid, List, Layout, AlertCircle } from 'lucide-react';
+import { Plus, Eye, Edit, Search, Filter, Grid, List, Layout, AlertCircle, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import {
@@ -21,9 +21,14 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 
+// Updated interface to include is_allowed flag
+interface EnhancedTemplateTypes extends TemplateTypes {
+  is_allowed?: boolean;
+}
+
 export default function TemplatesPage() {
   const router = useRouter();
-  const [templates, setTemplates] = useState<TemplateTypes[]>([
+  const [templates, setTemplates] = useState<EnhancedTemplateTypes[]>([
     {
       id: 'blank',
       name: 'Blank Template',
@@ -33,12 +38,13 @@ export default function TemplatesPage() {
         body: {
           rows: []
         }
-      })
+      }),
+      is_allowed: true // Blank template is always allowed
     }
   ]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [previewTemplate, setPreviewTemplate] = useState<TemplateTypes | null>(null);
+  const [previewTemplate, setPreviewTemplate] = useState<EnhancedTemplateTypes | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -83,7 +89,17 @@ export default function TemplatesPage() {
     (template) =>
       (searchQuery === '' || template.name.toLowerCase().includes(searchQuery.toLowerCase())) &&
       (categoryFilter === 'all' || template.category === categoryFilter)
-  );
+  )
+    .sort((a, b) => {
+      // First sort by allowed status (true values first)
+      if (a.is_allowed !== b.is_allowed) {
+        return a.is_allowed === false ? 1 : -1;
+      }
+
+      // Finally sort by name
+      return a.name.localeCompare(b.name);
+    });
+
 
   const container = {
     hidden: { opacity: 0 },
@@ -237,15 +253,20 @@ export default function TemplatesPage() {
             >
               {filteredTemplates.map((template) => (
                 <motion.div key={template.id} variants={item}>
-                  <Card className="group hover:shadow-lg transition-all duration-300">
+                  <Card className={`group hover:shadow-lg transition-all duration-300 ${template.is_allowed === false ? 'opacity-80' : ''}`}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <h2 className="text-lg font-semibold truncate">{template.name}</h2>
+                      <div className="flex items-center space-x-2">
+                        <h2 className="text-lg font-semibold truncate">{template.name}</h2>
+                        {template.is_allowed === false && (
+                          <Lock size={16} className="text-amber-500" />
+                        )}
+                      </div>
                       <Badge variant="outline" className="capitalize">
                         {template.category}
                       </Badge>
                     </CardHeader>
                     <CardContent className="p-4">
-                      <div className="aspect-video bg-gray-50 rounded-lg overflow-hidden border">
+                      <div className="aspect-video bg-gray-50 rounded-lg overflow-hidden border relative">
                         <iframe
                           ref={(el) => {
                             if (el) iframeRefs.current[template.id] = el;
@@ -255,6 +276,14 @@ export default function TemplatesPage() {
                           className="w-full h-full object-cover"
                           sandbox="allow-same-origin allow-scripts allow-popups"
                         />
+
+                        {/* Lock overlay for non-allowed templates */}
+                        {template.is_allowed === false && (
+                          <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white backdrop-blur-[2px]">
+                            <Lock size={32} className="mb-2" />
+                            <span className="text-sm font-medium">Upgrade to unlock</span>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                     <CardFooter className="flex justify-between">
@@ -263,6 +292,15 @@ export default function TemplatesPage() {
                         size="sm"
                         className="flex items-center space-x-2"
                         onClick={() => {
+                          if (template.is_allowed === false) {
+                            toast({
+                              title: "Template Locked",
+                              description: "Upgrade your subscription to access this template.",
+                              variant: "default",
+                            });
+                            return;
+                          }
+
                           if (template.id === 'blank') {
                             router.push('/dashboard/templates/create');
                           } else {
@@ -312,10 +350,10 @@ export default function TemplatesPage() {
             >
               {filteredTemplates.map((template) => (
                 <motion.div key={template.id} variants={item}>
-                  <Card className="group hover:shadow-lg transition-all duration-300">
+                  <Card className={`group hover:shadow-lg transition-all duration-300 ${template.is_allowed === false ? 'opacity-80' : ''}`}>
                     <CardContent className="p-6">
                       <div className="flex items-start space-x-6">
-                        <div className="w-48 aspect-video bg-gray-50 rounded-lg overflow-hidden border">
+                        <div className="w-48 aspect-video bg-gray-50 rounded-lg overflow-hidden border relative">
                           <iframe
                             ref={(el) => {
                               if (el) iframeRefs.current[template.id] = el;
@@ -325,10 +363,26 @@ export default function TemplatesPage() {
                             className="w-full h-full object-cover"
                             sandbox="allow-same-origin allow-scripts allow-popups"
                           />
+
+                          {/* Lock overlay for non-allowed templates in list view */}
+                          {template.is_allowed === false && (
+                            <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white backdrop-blur-[2px]">
+                              <Lock size={24} className="mb-1" />
+                              <span className="text-xs font-medium">Upgrade</span>
+                            </div>
+                          )}
                         </div>
                         <div className="flex-1 space-y-4">
                           <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold">{template.name}</h2>
+                            <div className="flex items-center space-x-2">
+                              <h2 className="text-lg font-semibold">{template.name}</h2>
+                              {template.is_allowed === false && (
+                                <div className="flex items-center text-amber-500 bg-amber-50 px-2 py-1 rounded text-xs">
+                                  <Lock size={12} className="mr-1" />
+                                  Premium Template
+                                </div>
+                              )}
+                            </div>
                             <Badge variant="outline" className="capitalize">
                               {template.category}
                             </Badge>
@@ -339,6 +393,15 @@ export default function TemplatesPage() {
                               size="sm"
                               className="flex items-center space-x-2"
                               onClick={() => {
+                                if (template.is_allowed === false) {
+                                  toast({
+                                    title: "Template Locked",
+                                    description: "Upgrade your subscription to access this template.",
+                                    variant: "default",
+                                  });
+                                  return;
+                                }
+
                                 if (template.id === 'blank') {
                                   router.push('/dashboard/templates/create');
                                 } else {
@@ -382,26 +445,57 @@ export default function TemplatesPage() {
             </Button>
           </CardContent>
         </Card>
-      )
-      }
+      )}
 
       <AnimatePresence>
         {previewTemplate && (
           <Dialog open onOpenChange={() => setPreviewTemplate(null)}>
             <DialogContent className="max-w-4xl">
-              <DialogTitle>{previewTemplate.name}</DialogTitle>
-              <div className="w-full aspect-video border rounded-lg overflow-hidden bg-gray-50">
+              <DialogTitle className="flex items-center space-x-2">
+                <span>{previewTemplate.name}</span>
+                {previewTemplate.is_allowed === false && (
+                  <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 flex items-center space-x-1">
+                    <Lock size={12} />
+                    <span>Premium Template</span>
+                  </Badge>
+                )}
+              </DialogTitle>
+              <div className="w-full aspect-video border rounded-lg overflow-hidden bg-gray-50 relative">
                 <iframe
                   srcDoc={previewTemplate.html}
                   title={`Preview - ${previewTemplate.name}`}
                   className="w-full h-full"
                   sandbox="allow-same-origin allow-scripts allow-popups"
                 />
+
+                {/* Lock overlay in preview modal */}
+                {previewTemplate.is_allowed === false && (
+                  <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white">
+                    <Lock size={40} className="mb-3" />
+                    <h3 className="text-xl font-bold mb-2">Premium Template</h3>
+                    <p className="text-center mb-4 max-w-md">
+                      Upgrade your subscription to access this template and more premium features.
+                    </p>
+                    <Button
+                      onClick={() => {
+                        setPreviewTemplate(null);
+                        // Redirect to upgrade page or show upgrade modal
+                        toast({
+                          title: "Upgrade Your Plan",
+                          description: "Visit the subscription page to upgrade and unlock all templates.",
+                          variant: "default",
+                        });
+                      }}
+                    >
+                      Upgrade Now
+                    </Button>
+                  </div>
+                )}
               </div>
             </DialogContent>
           </Dialog>
         )}
       </AnimatePresence>
-    </div >
+    </div>
   );
 }
