@@ -8,6 +8,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import { useRouter } from "next/navigation"
+import { useAuthStore } from "@/store/authStore"
 
 interface SidebarItem {
   name: string;
@@ -63,6 +65,21 @@ export const SidebarItems: React.FC = () => {
       variant: "default",
     });
   };
+
+  const router = useRouter()
+  const logout = useAuthStore((state) => state.logout)
+
+  const handleItemClick = async (e: React.MouseEvent, itemName: string, path: string) => {
+    if (itemName === "Logout" || path === "/logout") {
+      e.preventDefault()
+      try {
+        await logout()
+        router.push("/auth/login")
+      } catch (error) {
+        console.error("Logout failed", error)
+      }
+    }
+  }
 
   return (
     <nav className="space-y-1">
@@ -141,6 +158,9 @@ export const SidebarItems: React.FC = () => {
           ) : (
             <Link
               href={item.path || '#'}
+              onClick={(e) =>
+                handleItemClick(e, item.name, item.path!)
+              }
               className={cn(
                 'block w-full rounded-md transition-all duration-200',
                 'hover:bg-white/10 hover:text-white',
