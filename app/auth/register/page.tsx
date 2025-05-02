@@ -12,6 +12,7 @@ import { Icons } from "@/components/icons";
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from "@/store/authStore";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from 'next/navigation';
 export default function RegisterPage() {
   const { toast } = useToast();
   const router = useRouter();
@@ -24,9 +25,13 @@ export default function RegisterPage() {
     confirmPassword: "",
   });
 
+  const searchParams = useSearchParams();
+  const plan = searchParams.get('plan');
+  const isTrial = searchParams.get('isTrial');
+
   const { loading } = useAuthStore();
   const auth = useAuth();
-
+  const shouldIncludePlan = plan && plan !== "free";
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
@@ -45,13 +50,19 @@ export default function RegisterPage() {
         formData.password,
         formData.confirmPassword,
         formData.first_name,
-        formData.last_name
+        formData.last_name,
+        shouldIncludePlan ? plan : undefined,
+        shouldIncludePlan ? isTrial === '1' : undefined
       );
       toast({
         title: 'Success',
         description: 'Registration successful. Please verify your email.',
       });
-      router.push(`/auth/otp?email=${encodeURIComponent(formData.email)}`);
+      let redirectUrl = `/auth/otp?email=${encodeURIComponent(formData.email)}`;
+      if (shouldIncludePlan) {
+        redirectUrl += `&plan=${plan}&isTrial=${isTrial}`;
+      }
+      router.push(redirectUrl);
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -65,8 +76,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <AuthCard 
-      title="Create Account" 
+    <AuthCard
+      title="Create Account"
       description="Join us and get started with your journey"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -184,8 +195,8 @@ export default function RegisterPage() {
         <div className="text-center text-sm">
           <p className="text-gray-600 dark:text-gray-400">
             Already have an account?{" "}
-            <Link 
-              href="/auth/login" 
+            <Link
+              href="/auth/login"
               className="text-indigo-600 hover:text-indigo-500 hover:underline transition-colors font-medium"
             >
               Sign in

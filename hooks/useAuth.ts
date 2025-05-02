@@ -47,9 +47,11 @@ export function useAuth() {
     password: string,
     password_confirmation: string,
     first_name: string,
-    last_name: string
+    last_name: string,
+    plan?: string,
+    isTrial?: boolean
   ) => {
-    await register(email, password, password_confirmation, first_name, last_name);
+    await register(email, password, password_confirmation, first_name, last_name, plan, isTrial);
     router.push('/dashboard'); // Redirect to the dashboard after registration
   };
 

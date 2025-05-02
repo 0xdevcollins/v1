@@ -16,7 +16,9 @@ interface AuthState {
     password: string,
     password_confirmation: string,
     first_name: string,
-    last_name: string
+    last_name: string,
+    subscription_plan?: string,
+    start_trial?: boolean
   ) => Promise<void>;
   fetchCurrentUser: () => Promise<void>;
   updateUser: (user: UserTypes) => void;
@@ -52,7 +54,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
     } catch (error) {
       console.log(error);
-      
+
       set({ loading: false });
       throw error;
     }
@@ -127,7 +129,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     password: string,
     password_confirmation: string,
     first_name: string,
-    last_name: string
+    last_name: string,
+    subscription_plan?: string,
+    start_trial?: boolean,
   ): Promise<void> => {
     try {
       set({ loading: true });
@@ -141,6 +145,8 @@ export const useAuthStore = create<AuthState>((set) => ({
           password_confirmation,
           first_name,
           last_name,
+          subscription_plan,
+          start_trial
         }),
       });
 
@@ -192,13 +198,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   updateUser: (userData: UserTypes): void => {
     // Get the current user
     const currentUser = useAuthStore.getState().user;
-    
+
     // If no current user, do nothing
     if (!currentUser) {
       console.warn("Cannot update user: No user is currently logged in");
       return;
     }
-    
+
     // Update the user state directly without making an API call
     set({ user: { ...currentUser, ...userData } });
   },
