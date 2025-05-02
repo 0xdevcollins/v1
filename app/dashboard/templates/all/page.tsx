@@ -477,15 +477,7 @@ export default function TemplatesPage() {
                       Upgrade your subscription to access this template and more premium features.
                     </p>
                     <Button
-                      onClick={() => {
-                        setPreviewTemplate(null);
-                        // Redirect to upgrade page or show upgrade modal
-                        toast({
-                          title: "Upgrade Your Plan",
-                          description: "Visit the subscription page to upgrade and unlock all templates.",
-                          variant: "default",
-                        });
-                      }}
+                      onClick={() => router.push('/dashboard/pricing')}
                     >
                       Upgrade Now
                     </Button>

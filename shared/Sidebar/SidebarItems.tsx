@@ -46,7 +46,7 @@ export const SidebarItems: React.FC = () => {
     { name: 'Integration', icon: PuzzleIcon, locked: true, path: '/dashboard/integration' },
     { name: 'Audience', icon: UsersIcon, path: '/dashboard/audience/all' },
     { name: 'My files', icon: FileStack, locked: true, path: '/dashboard/templates/my-files' },
-    { name: 'Pricing', icon: DollarSign, path: '/dashboard/pricing' },
+    // { name: 'Pricing', icon: DollarSign, path: '/dashboard/pricing' },
     { name: 'Settings', icon: CogIcon, path: '/dashboard/settings' },
     { name: 'Logout', icon: LogOutIcon, path: '/logout' },
   ];
@@ -122,11 +122,11 @@ export const SidebarItems: React.FC = () => {
               </CollapsibleContent>
             </Collapsible>
           ) : item.locked ? (
-            <div 
+            <div
               className={cn(
                 'block w-full rounded-md transition-all duration-200',
                 'hover:bg-white/10 hover:text-white',
-                'cursor-pointer' 
+                'cursor-pointer'
               )}
               onClick={(e) => handleLockedItemClick(e, item.name)}
             >
